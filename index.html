@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>時間割</title>
+  <title>時間割 & カレンダー</title>
   <style>
     /* =========================================
        基本リセット・全体レイアウト
@@ -19,8 +19,12 @@
     .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;flex-wrap:nowrap;gap:16px;}
     .header-left, .header-right { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
     .ttl{font-size:20px;font-weight:600;white-space:nowrap;}
-    .hint-text{font-size:12px;color:#888;margin-bottom:1rem;}
+    .hint-text{font-size:12px;color:#888;margin-bottom:0.5rem;}
     
+    /* 週カレンダーナビゲーション */
+    .week-nav { display:flex; justify-content:center; align-items:center; gap:16px; margin-bottom: 12px; background:white; padding:10px 16px; border-radius:12px; border:1px solid #eee; box-shadow:0 2px 4px rgba(0,0,0,0.02); }
+    .week-label { font-weight:600; font-size:16px; width:140px; text-align:center; color:#333; }
+
     /* タブ */
     .tt-tabs{display:flex;gap:6px;align-items:center;}
     .tt-tab{font-size:13px;padding:6px 14px;border-radius:20px;border:0.5px solid #ccc;background:white;cursor:pointer;color:#666;transition:0.2s;white-space:nowrap;}
@@ -35,7 +39,7 @@
     .btn.primary{background:#1a1a1a;color:#f5f5f5;border-color:#1a1a1a;}
     .btn.primary:hover{background:#333;}
     .btn.small{padding:4px 10px;font-size:12px;}
-    .icon-btn{padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:white;border:0.5px solid #ccc;cursor:pointer;}
+    .icon-btn{padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:white;border:0.5px solid #ccc;cursor:pointer; transition:0.2s;}
     .icon-btn:hover{background:#f0f0f0;}
     .saving{font-size:12px;color:#aaa;white-space:nowrap;}
 
@@ -44,7 +48,8 @@
        ========================================= */
     .table-wrap{overflow-x:auto; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); border:1px solid #eee;}
     table{width:100%;border-collapse:collapse;min-width:600px; table-layout:fixed;}
-    th{font-size:13px;font-weight:500;color:#666;padding:12px 6px;text-align:center;border-bottom:1px solid #eee;}
+    th{font-size:13px;font-weight:500;color:#666;padding:8px 4px;text-align:center;border-bottom:1px solid #eee; transition:0.2s;}
+    th.day-header:hover { background:#f5f5f5; }
     .pl{font-size:12px;color:#888;text-align:center;padding:0 4px;vertical-align:middle;line-height:1.4;width:60px;cursor:context-menu;border-right:1px solid #eee;border-bottom:1px solid #eee;}
     .pl strong{display:block;font-size:14px;font-weight:500;color:#1a1a1a;}
     .cell{border-right:1px solid #eee;border-bottom:1px solid #eee;padding:6px;vertical-align:top;cursor:context-menu;position:relative;word-break:break-word;overflow-wrap:break-word;height:auto;}
@@ -67,7 +72,7 @@
     .cdel:hover{color:#A32D2D;}
     
     /* =========================================
-       コンテキストメニュー
+       コンテキストメニュー・モーダル全般
        ========================================= */
     .ctx{position:fixed;background:white;border:1px solid #eee;border-radius:12px;padding:8px 0;z-index:1000;min-width:220px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.12);}
     .ctx.show{display:block;}
@@ -80,9 +85,6 @@
     .ck{width:16px;height:16px;border:1px solid #ccc;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:0.2s;}
     .ck.on{background:#1a1a1a;border-color:#1a1a1a;color:white;font-size:11px;}
 
-    /* =========================================
-       モーダル全般
-       ========================================= */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
     .overlay.show{display:flex;}
     .mbox{background:white;border-radius:16px;padding:1.5rem;width:min(420px,92vw);max-height:90vh;overflow-y:auto;box-shadow:0 12px 32px rgba(0,0,0,0.2);}
@@ -119,7 +121,7 @@
     .toggle-btn.on{background:#1a1a1a;}
     .toggle-btn.on::after{transform:translateX(20px);}
 
-    /* ログイン画面 */
+    /* ログイン画面等ユーティリティ */
     #login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;}
     #login-screen h1{font-size:28px;font-weight:600;}
     .g-btn{display:flex;align-items:center;gap:12px;padding:12px 24px;border:1px solid #ddd;border-radius:8px;background:white;font-size:15px;font-weight:500;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.05);}
@@ -170,14 +172,26 @@
     </div>
   </div>
   
-  <div class="hint-text">※授業枠を追加・編集するにはマスを右クリック（スマホは長押し）するか、授業チップをクリックしてください。</div>
+  <div class="hint-text">※授業枠を追加・編集するにはマスを右クリックするか、授業チップをクリックしてください。</div>
+
+  <div class="week-nav">
+    <button class="icon-btn" onclick="shiftWeek(-1)" title="前の週へ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="week-label" id="week-label">----年--月</div>
+    <button class="icon-btn" onclick="shiftWeek(1)" title="次の週へ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+    <button class="btn small" onclick="resetWeek()">今週</button>
+  </div>
 
   <div class="table-wrap">
     <table id="tt">
-      <thead><tr>
-        <th style="width:60px; border-right:1px solid #eee;"></th>
-        <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
-      </tr></thead>
+      <thead>
+        <tr id="tt-head">
+          <th style="width:60px; border-right:1px solid #eee;"></th>
+          </tr>
+      </thead>
       <tbody id="tb"></tbody>
     </table>
   </div>
@@ -192,7 +206,7 @@
     </div>
     <div id="pane-prompt">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:13px;color:#666;">履修情報の時間割画像と一緒にAIに送ってください</span>
+        <span style="font-size:13px;color:#666;">画像と一緒にAIに送ってください</span>
         <button class="btn primary small" onclick="copyP()">コピー</button>
       </div>
       <div class="pbox" id="ptxt"></div>
@@ -331,7 +345,20 @@ const CHEX={blue:'#378ADD',teal:'#1D9E75',coral:'#D85A30',green:'#639922',amber:
 let uid=null, timetables=[], currentTtId=null, cellData={}, sc='blue';
 let isLoadingTimetables = false;
 let editingPeriod = null;
-let editingTarget = null; // 編集用のターゲット変数
+let editingTarget = null;
+
+// カレンダー管理用変数
+let exceptions = {}; // 例外データ（休日設定など）を保持 { 'YYYY-MM-DD': { type: 'holiday' } }
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // 月曜日を基準
+  return new Date(date.setDate(diff));
+}
+function formatDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+let currentWeekStart = getMonday(new Date());
 
 let sysSettings = { 
   periods: 5, 
@@ -365,6 +392,7 @@ onAuthStateChanged(auth, async user => {
     }
     
     await loadSettings();
+    await loadExceptions(); // 休日データを読み込む
     await loadTimetables();
   } else {
     uid=null;
@@ -374,7 +402,7 @@ onAuthStateChanged(auth, async user => {
 });
 
 // =========================================
-// 設定・同期系
+// 設定・同期系・休日管理
 // =========================================
 async function loadSettings() {
   const snap = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
@@ -388,6 +416,34 @@ async function saveSettings() {
   setSaving('');
 }
 
+// 例外（祝日など）データの読み込み
+async function loadExceptions() {
+  const snap = await getDocs(collection(db, 'users', uid, 'exceptions'));
+  exceptions = {};
+  snap.forEach(d => { exceptions[d.id] = d.data(); });
+}
+
+// 祝日（全休）のトグル処理
+window.toggleHoliday = async (dateStr, displayDate) => {
+  const isHol = exceptions[dateStr] && exceptions[dateStr].type === 'holiday';
+  const msg = isHol 
+    ? `${displayDate} の「全休」を解除して、通常通り授業を表示しますか？`
+    : `${displayDate} を「全休（祝日や学校行事など）」に設定しますか？\n※設定すると、その日の基本の授業はすべて非表示になります。`;
+    
+  if(!confirm(msg)) return;
+  
+  setSaving('保存中...');
+  if(isHol) {
+    delete exceptions[dateStr];
+    await deleteDoc(doc(db, 'users', uid, 'exceptions', dateStr));
+  } else {
+    exceptions[dateStr] = { type: 'holiday' };
+    await setDoc(doc(db, 'users', uid, 'exceptions', dateStr), exceptions[dateStr]);
+  }
+  setSaving('');
+  buildTable(); // 再描画
+};
+
 window.toggleSet = async (key) => {
   sysSettings[key] = !sysSettings[key];
   updateSettingUI();
@@ -399,36 +455,19 @@ function updateSettingUI() {
   document.getElementById('tg-teacher').className = 'toggle-btn' + (sysSettings.showTeacher ? ' on' : '');
   document.getElementById('tg-room').className = 'toggle-btn' + (sysSettings.showRoom ? ' on' : '');
   document.getElementById('tg-memo').className = 'toggle-btn' + (sysSettings.showMemo ? ' on' : '');
-  updatePromptText(); // プロンプトの更新
+  updatePromptText();
 }
 
 function updatePromptText() {
   let formatStr = "授業名,曜日(月火水木金土の1文字),時限(1〜" + sysSettings.periods + "の数字)";
   let exampleStr = "デザイン実習,月,1";
   
-  if (sysSettings.showTeacher) {
-    formatStr += ",担当教員名";
-    exampleStr += ",山田太郎";
-  }
-  if (sysSettings.showRoom) {
-    formatStr += ",教室";
-    exampleStr += ",101教室";
-  }
+  if (sysSettings.showTeacher) { formatStr += ",担当教員名"; exampleStr += ",山田太郎"; }
+  if (sysSettings.showRoom) { formatStr += ",教室"; exampleStr += ",101教室"; }
 
   const promptEl = document.getElementById('ptxt');
   if(promptEl) {
-    promptEl.textContent = `以下の時間割の画像を読み取り、CSV形式に変換してください。
-
-出力ルール：
-- ヘッダー行なし
-- 1行 = 1授業
-- 形式: ${formatStr}
-- 該当する情報が画像にない場合は空文字にする
-- 空きコマは出力しない
-- 余計な説明文・コードブロック記号(\`\`\`)は不要
-
-出力例：
-${exampleStr}`;
+    promptEl.textContent = `以下の時間割の画像を読み取り、CSV形式に変換してください。\n出力ルール：\n- ヘッダー行なし\n- 1行 = 1授業\n- 形式: ${formatStr}\n- 該当する情報が画像にない場合は空文字にする\n- 空きコマは出力しない\n- 余計な説明文・コードブロック記号(\`\`\`)は不要\n出力例：\n${exampleStr}`;
   }
 }
 
@@ -440,6 +479,16 @@ window.changePeriod = async (delta) => {
   updatePromptText();
   buildTable();
   await saveSettings();
+};
+
+// 週カレンダー操作
+window.shiftWeek = (offset) => {
+  currentWeekStart.setDate(currentWeekStart.getDate() + offset * 7);
+  buildTable();
+};
+window.resetWeek = () => {
+  currentWeekStart = getMonday(new Date());
+  buildTable();
 };
 
 // =========================================
@@ -599,12 +648,42 @@ async function saveCell(d, p){
 }
 
 // =========================================
-// テーブル構築・描画
+// テーブル・カレンダー構築・描画
 // =========================================
 function buildTable(){
   const tb=document.getElementById('tb');
   tb.innerHTML='';
   
+  // 1. カレンダー週ラベルの更新
+  document.getElementById('week-label').textContent = `${currentWeekStart.getFullYear()}年${currentWeekStart.getMonth()+1}月`;
+  
+  // 2. ヘッダー行（日付と曜日）の作成
+  const theadRow = document.getElementById('tt-head');
+  theadRow.innerHTML = '<th style="width:60px; border-right:1px solid #eee;"></th>';
+  
+  const currentDays = []; // 今週の月〜土の情報を格納
+  for(let i=0; i<6; i++){
+    const d = new Date(currentWeekStart);
+    d.setDate(d.getDate() + i);
+    const dStr = formatDate(d);
+    currentDays.push({ date: d, dateStr: dStr });
+    
+    const isHol = exceptions[dStr] && exceptions[dStr].type === 'holiday';
+    
+    const th = document.createElement('th');
+    th.className = 'day-header';
+    th.style.cursor = 'pointer';
+    th.title = 'クリックで「全休 / 祝日」を切り替え';
+    th.innerHTML = `
+      <div style="font-size:11px; color:#888; font-weight:400;">${d.getMonth()+1}/${d.getDate()}</div>
+      <div style="font-size:14px; margin-top:2px; ${isHol ? 'color:#A32D2D;' : ''}">${DAYS[i]}</div>
+      ${isHol ? '<div style="font-size:10px; color:#A32D2D; font-weight:400; margin-top:2px;">休み</div>' : ''}
+    `;
+    th.onclick = () => toggleHoliday(dStr, `${d.getMonth()+1}月${d.getDate()}日`);
+    theadRow.appendChild(th);
+  }
+
+  // 3. テーブル本体の作成
   const pCount = sysSettings.periods;
   const pTimes = sysSettings.times;
 
@@ -630,28 +709,35 @@ function buildTable(){
     tl.addEventListener('touchend',()=>clearTimeout(tt3));
     tr.appendChild(tl);
     
-    DAYS.forEach((_,di)=>{
+    currentDays.forEach((dayObj, di)=>{
       const cell=document.createElement('td');
       cell.className='cell';
       cell.dataset.d=di; cell.dataset.p=p;
+      
+      const isHol = exceptions[dayObj.dateStr] && exceptions[dayObj.dateStr].type === 'holiday';
+      if(isHol) cell.style.background = '#f7f7f7'; // 休みなら背景を薄いグレーに
       
       cell.addEventListener('contextmenu',onCtx);
       let tt2;
       cell.addEventListener('touchstart',e=>{tt2=setTimeout(()=>onCtx({preventDefault:()=>{},currentTarget:cell,clientX:e.touches[0].clientX,clientY:e.touches[0].clientY}),500);},{passive:true});
       cell.addEventListener('touchend',()=>clearTimeout(tt2));
       
-      rc(cell,di,p);
+      rc(cell, di, p, dayObj.dateStr); // 日付文字列も渡して描画
       tr.appendChild(cell);
     });
     tb.appendChild(tr);
   }
 }
 
-// ▼ 修正済：授業チップの描画 ▼
-function rc(cell,d,p){
-  const cs=g(d,p);
+// 授業チップの描画
+function rc(cell, d, p, dateStr){
   cell.innerHTML='';
   
+  // この日が全休（祝日など）の場合はチップを描画しない
+  const isHol = exceptions[dateStr] && exceptions[dateStr].type === 'holiday';
+  if(isHol) return;
+
+  const cs=g(d,p);
   cs.forEach((c,ci)=>{
     if(c.hidden) return;
 
@@ -671,19 +757,16 @@ function rc(cell,d,p){
     }
 
     const ch=document.createElement('div');
-    // c-edit クラスを付与
     ch.className=`chip chip-${c.color||'blue'} c-edit`;
     ch.dataset.d = d;
     ch.dataset.p = p;
     ch.dataset.i = ci;
-    ch.style.cursor = 'pointer';
     ch.title = 'クリックして編集';
     
-    // 文字部分はクリック貫通、✕ボタンはクリック可能にする
     ch.innerHTML=`<div style="pointer-events:none;">
       <div style="font-weight:600;font-size:13px;">${c.name}</div>${dHtml}
     </div>
-    <span class="cdel" data-d="${d}" data-p="${p}" data-i="${ci}" title="完全に削除">✕</span>`;
+    <span class="cdel" data-d="${d}" data-p="${p}" data-i="${ci}" title="完全に削除" style="pointer-events:auto;">✕</span>`;
     
     cell.appendChild(ch);
   });
@@ -694,19 +777,16 @@ function ra(){ document.querySelectorAll('.cell').forEach(c=>rc(c,+c.dataset.d,+
 // =========================================
 // クリック・メニュー制御
 // =========================================
-// ▼ 修正済：ここが抜けていました！ ▼
 document.addEventListener('click',e=>{
-  // 1. 削除ボタンのクリック
   const del=e.target.closest('.cdel');
   if(del){
     if(!confirm("この授業を完全に削除しますか？")) return;
     pushHistory();
     const d=+del.dataset.d,p=+del.dataset.p,i=+del.dataset.i;
-    const a=g(d,p); a.splice(i,1); s(d,p,a); ra(); saveCell(d,p);
+    const a=g(d,p); a.splice(i,1); s(d,p,a); buildTable(); saveCell(d,p); // buildTableで再描画
     return;
   }
   
-  // 2. 授業チップ自体のクリック（編集モードを開く）
   const chip=e.target.closest('.c-edit');
   if(chip){
     const d=+chip.dataset.d, p=+chip.dataset.p, i=+chip.dataset.i;
@@ -714,7 +794,6 @@ document.addEventListener('click',e=>{
     return;
   }
 
-  // 3. それ以外の場所をクリックしたらメニューを閉じる
   if(!e.target.closest('#ctx')) document.getElementById('ctx').classList.remove('show');
 });
 
@@ -739,9 +818,7 @@ function onCtx(e){
         ev.stopPropagation();
         pushHistory();
         c.hidden = !c.hidden;
-        s(d,p,cs); ra(); saveCell(d,p);
-        row.querySelector('.ck').className = 'ck' + (c.hidden ? '' : ' on');
-        row.querySelector('span:last-child').style.opacity = c.hidden ? 0.5 : 1;
+        s(d,p,cs); buildTable(); saveCell(d,p);
       };
       cd.appendChild(row);
     });
@@ -763,7 +840,6 @@ window.showAdd = (d, p, i = null) => {
   document.getElementById('m-period').value = p !== null ? p : 1;
   
   if (i !== null) {
-    // 編集モード：既存データを入れる
     editingTarget = { d, p, i };
     const c = g(d, p)[i];
     document.getElementById('m-name').value = c.name;
@@ -772,7 +848,6 @@ window.showAdd = (d, p, i = null) => {
     document.getElementById('m-memo').value = c.memo || '';
     sc = c.color || 'blue';
   } else {
-    // 新規追加モード：空にする
     editingTarget = null;
     document.getElementById('m-name').value='';
     document.getElementById('m-teacher').value='';
@@ -812,18 +887,15 @@ window.saveC = () => {
   const newItem = {name, teacher, room, memo, color:sc, hidden:false};
 
   if (editingTarget !== null) {
-    // 【編集・更新処理】
     const { d: oldD, p: oldP, i: oldI } = editingTarget;
     const oldA = g(oldD, oldP);
-    newItem.hidden = oldA[oldI].hidden; // 見えない状態だった場合は引き継ぐ
+    newItem.hidden = oldA[oldI].hidden;
 
     if (oldD === newD && oldP === newP) {
-      // 同じ曜日の同じ時限で上書き
       oldA[oldI] = newItem;
       s(newD, newP, oldA);
       saveCell(newD, newP);
     } else {
-      // 別の曜日・時限に移動した場合
       oldA.splice(oldI, 1);
       s(oldD, oldP, oldA);
       saveCell(oldD, oldP);
@@ -834,14 +906,13 @@ window.saveC = () => {
       saveCell(newD, newP);
     }
   } else {
-    // 【新規追加処理】
     const a = g(newD, newP); 
     a.push(newItem); 
     s(newD, newP, a); 
     saveCell(newD, newP); 
   }
 
-  ra(); 
+  buildTable(); 
   closeAdd();
 };
 
@@ -928,7 +999,7 @@ window.doImport = async () => {
     cnt++;
   });
   
-  ra();
+  buildTable();
   const batch = writeBatch(db);
   Object.keys(cellData).forEach(k => batch.set(doc(db,'users',uid,'timetables',currentTtId,'cells',k), {classes: cellData[k]}));
   await batch.commit();
